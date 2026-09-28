@@ -1,0 +1,31 @@
+INFO:pipeline.data_ingestion:Loaded 30000 rows x 24 columns from D:\Data_MLOps\Lab-04\ddm501-lab4-starter\data\credit_default.csv
+drifted (strength 0.15) traffic: 400 requests -> http://localhost:8000/predict
+
+  50/400
+  100/400
+  150/400
+  200/400
+  250/400
+  300/400
+  350/400
+  400/400
+
+==========================================================
+requests      400
+status        {200: 400}
+latency p50   38.3 ms
+latency p95   43.5 ms
+latency max   73.7 ms
+score  mean   0.2609
+score  median 0.1943
+APPROVE         296  (74.0%)
+REVIEW           65  (16.2%)
+DECLINE          39  (9.8%)
+==========================================================
+
+monitoring after this run
+  window        400
+  drift score   1.1518368702283879  (significant)
+  per feature   {'LIMIT_BAL': 0.057217994978243904, 'AGE': 0.0446353232167371, 'PAY_0': 0.0059094906450449305, 'utilisation_ratio': 0.26106527018364345, 'payment_ratio': 1.1518368702283879, 'max_delay': 0.0035574038132665095}
+  selection     {'1': 0.2827586206896552, '2': 0.24705882352941178}
+  fairness gap  0.03569979716024341

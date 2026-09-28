@@ -1,0 +1,822 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "uid": "ddm501-model",
+  "title": "DDM501 \u2014 Model Behaviour",
+  "description": "ML-specific signals for the credit risk API: input drift, output drift, decision mix, fairness and the cost of explaining.",
+  "tags": [
+    "ddm501",
+    "lab04",
+    "model"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Is the model still looking at the same world?",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": [],
+      "id": 1
+    },
+    {
+      "type": "stat",
+      "title": "Drift score (max PSI)",
+      "description": "Conventional PSI bands: <0.10 stable, 0.10-0.25 moderate, >=0.25 significant. Measured against the TRAINING distribution, frozen at build time \u2014 never against recent traffic, which would make slow drift invisible.",
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 5,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ddm501"
+      },
+      "targets": [
+        {
+          "expr": "ml_drift_score",
+          "legendFormat": "PSI",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ddm501"
+          },
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 0.25
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "id": 2
+    },
+    {
+      "type": "stat",
+      "title": "Window size",
+      "description": "Requests in the drift window. Below 200 the drift score is noise: 'not measuring' must never look like 'nothing wrong'.",
+      "gridPos": {
+        "x": 5,
+        "y": 1,
+        "w": 5,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ddm501"
+      },
+      "targets": [
+        {
+          "expr": "ml_drift_window_size",
+          "legendFormat": "window",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ddm501"
+          },
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 200
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "id": 3
+    },
+    {
+      "type": "stat",
+      "title": "Fairness gap",
+      "description": "Largest selection-rate difference between groups. Alert fires above 0.10.",
+      "gridPos": {
+        "x": 10,
+        "y": 1,
+        "w": 5,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ddm501"
+      },
+      "targets": [
+        {
+          "expr": "ml_fairness_gap",
+          "legendFormat": "gap",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ddm501"
+          },
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.05
+              },
+              {
+                "color": "red",
+                "value": 0.1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "id": 4
+    },
+    {
+      "type": "stat",
+      "title": "Decline rate",
+      "description": "DECLINE share of decisions over 10m. Training baseline is about 8%; alert at 20%.",
+      "gridPos": {
+        "x": 15,
+        "y": 1,
+        "w": 5,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ddm501"
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(ml_decisions_total{decision=\"DECLINE\"}[10m])) / clamp_min(sum(rate(ml_decisions_total[10m])), 0.001)",
+          "legendFormat": "decline",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ddm501"
+          },
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.12
+              },
+              {
+                "color": "red",
+                "value": 0.2
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "id": 5
+    },
+    {
+      "type": "stat",
+      "title": "Model version",
+      "description": "Which model produced these numbers.",
+      "gridPos": {
+        "x": 20,
+        "y": 1,
+        "w": 4,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ddm501"
+      },
+      "targets": [
+        {
+          "expr": "ml_model_info",
+          "legendFormat": "{{version}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ddm501"
+          },
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "name"
+      },
+      "id": 6
+    },
+    {
+      "type": "row",
+      "title": "Input drift",
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": [],
+      "id": 7
+    },
+    {
+      "type": "timeseries",
+      "title": "PSI per feature",
+      "description": "The aggregate says something moved; this says WHAT. One feature far above the rest is usually a data bug, not a population shift.",
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 14,
+        "h": 9
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ddm501"
+      },
+      "targets": [
+        {
+          "expr": "ml_feature_drift_psi",
+          "legendFormat": "{{feature}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ddm501"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 0.25
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "id": 8
+    },
+    {
+      "type": "timeseries",
+      "title": "Drift score against the alert thresholds",
+      "description": "Max PSI across features with the 0.10 / 0.25 bands drawn in.",
+      "gridPos": {
+        "x": 14,
+        "y": 7,
+        "w": 10,
+        "h": 9
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ddm501"
+      },
+      "targets": [
+        {
+          "expr": "ml_drift_score",
+          "legendFormat": "max PSI",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ddm501"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 0.25
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "line+area"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "id": 9
+    },
+    {
+      "type": "row",
+      "title": "What the model is saying",
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": [],
+      "id": 10
+    },
+    {
+      "type": "timeseries",
+      "title": "Score distribution (p50 / p90 / p99)",
+      "description": "Output drift, observable today \u2014 unlike accuracy.",
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ddm501"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.5, sum(rate(ml_prediction_score_bucket[5m])) by (le))",
+          "legendFormat": "p50",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ddm501"
+          }
+        },
+        {
+          "expr": "histogram_quantile(0.9, sum(rate(ml_prediction_score_bucket[5m])) by (le))",
+          "legendFormat": "p90",
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ddm501"
+          }
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(ml_prediction_score_bucket[5m])) by (le))",
+          "legendFormat": "p99",
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ddm501"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "id": 11
+    },
+    {
+      "type": "timeseries",
+      "title": "Decision mix",
+      "description": "The business-visible consequence, denominated in manual underwriting work.",
+      "gridPos": {
+        "x": 12,
+        "y": 17,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ddm501"
+      },
+      "targets": [
+        {
+          "expr": "sum by (decision) (rate(ml_decisions_total[5m]))",
+          "legendFormat": "{{decision}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ddm501"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "stacking": {
+              "mode": "percent"
+            },
+            "fillOpacity": 60
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "id": 12
+    },
+    {
+      "type": "row",
+      "title": "Fairness",
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": [],
+      "id": 13
+    },
+    {
+      "type": "timeseries",
+      "title": "Selection rate by group",
+      "description": "Share of each group sent to review or decline. The rates say what is happening.",
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ddm501"
+      },
+      "targets": [
+        {
+          "expr": "ml_selection_rate",
+          "legendFormat": "group {{group}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ddm501"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "id": 14
+    },
+    {
+      "type": "timeseries",
+      "title": "Fairness gap",
+      "description": "Max minus min selection rate. This is what the alert watches (0.10).",
+      "gridPos": {
+        "x": 12,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ddm501"
+      },
+      "targets": [
+        {
+          "expr": "ml_fairness_gap",
+          "legendFormat": "gap",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ddm501"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.1
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "id": 15
+    },
+    {
+      "type": "row",
+      "title": "Cost of explaining",
+      "gridPos": {
+        "x": 0,
+        "y": 34,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": [],
+      "id": 16
+    },
+    {
+      "type": "timeseries",
+      "title": "Explanation latency p95",
+      "description": "SHAP cost, measured separately from prediction so neither hides the other. Alert at 1s.",
+      "gridPos": {
+        "x": 0,
+        "y": 35,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ddm501"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(ml_explain_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ddm501"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "id": 17
+    },
+    {
+      "type": "timeseries",
+      "title": "Prediction errors by type",
+      "description": "Failures inside the model call, broken down by exception type.",
+      "gridPos": {
+        "x": 12,
+        "y": 35,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ddm501"
+      },
+      "targets": [
+        {
+          "expr": "sum by (error_type) (rate(ml_prediction_errors_total[5m]))",
+          "legendFormat": "{{error_type}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ddm501"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "id": 18
+    }
+  ]
+}
