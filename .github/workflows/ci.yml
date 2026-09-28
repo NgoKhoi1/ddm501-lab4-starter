@@ -8,6 +8,9 @@ on:
 
 env:
   PYTHON_VERSION: "3.11"
+  # `python scripts/x.py` puts scripts/ on sys.path, not the repo root, so
+  # `from pipeline...` / `from app...` fail without this.
+  PYTHONPATH: ${{ github.workspace }}
 
 jobs:
   # ---------------------------------------------------------------------------

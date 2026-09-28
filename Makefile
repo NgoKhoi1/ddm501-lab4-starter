@@ -12,6 +12,9 @@ PYTEST   ?= $(PYTHON) -m pytest
 COMPOSE  ?= docker compose
 PROMTOOL ?= promtool
 
+# scripts/*.py import from app/ and pipeline/; the repo root must be importable.
+export PYTHONPATH := $(CURDIR)
+
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 	  | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
